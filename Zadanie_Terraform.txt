@@ -1,0 +1,72 @@
+TERRAFORM - Azure i AWS (Try Shenanigans)
+Użyć VPNa !!! 
+Zobacz kursy na aCloudGuru jak to działa
+Utworzyły Siec, VMkę i VPN Gateway między AWS a AZURE
+Bezpiecznie - tylko niektóre tunele
+
+Zobacz Import - cross match z tym co napisane
+terraform show state
+
+
+## Azure ##
+
+1. Vnet - /16 CIDR
+  1.1 Subnets
+    - Default /24 
+    - GatewaySubnet /24 
+2. Virtual Network Gateway
+  - Active-Active - Enable
+  - SKU - VpnGw2AZ
+  - BGP - enabled
+  - Public IP 1
+  - Public IP 2
+  - Custom Azure APIPA BGP IP address 1 - 169.254.21.2, 169.254.22.2
+  - Custom Azure APIPA BGP IP address 2 - 169.254.21.6, 169.254.22.6
+  - ASN - 65000
+  - VPN-Type - Route-Based
+  - Gateway-Type - VPN
+  2.1 Connections
+    - Tunel-1-connection-1
+	- BGP - Enabled
+	- PSK from AWS
+	- Enable Custom BGP Addresses
+	  - Primary - 169.254.21.2
+	  - Secondary - 169.254.21.6
+    - Tunel-1-connection-2
+	- BGP - Enabled
+	- PSK from AWS
+	- Enable Custom BGP Addresses
+	  - Primary - 169.254.22.2
+	  - Secondary - 169.254.22.6
+    - Tunel-2-connection-1
+	- BGP - Enabled
+	- PSK from AWS
+	- Enable Custom BGP Addresses
+	  - Primary - 169.254.21.2
+	  - Secondary - 169.254.21.6
+    - Tunel-2-connection-2
+	- BGP - Enabled
+	- PSK from AWS
+	- Enable Custom BGP Addresses
+	  - Primary - 169.254.21.2
+	  - Secondary - 169.254.22.6
+3. Local Network Gateway
+  3.1 4 unique gateways
+    - AWS-Tunnel1-1
+	- AWS Site-to-Site 1 Tunel 1 Public IP
+	- ASN of AWS(64512)
+	- BGP Peer - 169.254.21.1
+    - AWS-Tunnel1-2
+	- AWS Site-to-Site 1 Tunel 2 Public IP
+	- ASN of AWS(64512)
+	- BGP Peer - 169.254.22.1
+    - AWS-Tunnel2-1
+	- AWS Site-to-Site 2 Tunel 1 Public IP
+	- ASN of AWS(64512)
+	- BGP Peer - 169.254.21.5
+    - AWS-Tunnel2-2
+	- AWS Site-to-Site 2 Tunel 2 Public IP
+	- ASN of AWS(64512)
+	- BGP Peer - 169.254.22.5
+
+  
