@@ -61,6 +61,8 @@
 
 ## AWS ##
 
+Need to ENABLE dynamic routing for tables in AWS
+
 1. VPC - /16 CIDR
   1.1 - Subnets - at least 1 /24 subnet
 2. Virtual Private Gateway
