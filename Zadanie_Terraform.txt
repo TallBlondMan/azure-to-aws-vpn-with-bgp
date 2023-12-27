@@ -1,13 +1,3 @@
-TERRAFORM - Azure i AWS (Try Shenanigans)
-Użyć VPNa !!! 
-Zobacz kursy na aCloudGuru jak to działa
-Utworzyły Siec, VMkę i VPN Gateway między AWS a AZURE
-Bezpiecznie - tylko niektóre tunele
-
-Zobacz Import - cross match z tym co napisane
-terraform show state
-
-
 ## Azure ##
 
 1. Vnet - /16 CIDR
@@ -28,25 +18,25 @@ terraform show state
   2.1 Connections
     - Tunel-1-connection-1
 	- BGP - Enabled
-	- PSK from AWS
+	- PSK(key) from AWS
 	- Enable Custom BGP Addresses
 	  - Primary - 169.254.21.2
 	  - Secondary - 169.254.21.6
     - Tunel-1-connection-2
 	- BGP - Enabled
-	- PSK from AWS
+	- PSK(key) from AWS
 	- Enable Custom BGP Addresses
 	  - Primary - 169.254.22.2
 	  - Secondary - 169.254.22.6
     - Tunel-2-connection-1
 	- BGP - Enabled
-	- PSK from AWS
+	- PSK(key) from AWS
 	- Enable Custom BGP Addresses
 	  - Primary - 169.254.21.2
 	  - Secondary - 169.254.21.6
     - Tunel-2-connection-2
 	- BGP - Enabled
-	- PSK from AWS
+	- PSK(key) from AWS
 	- Enable Custom BGP Addresses
 	  - Primary - 169.254.21.2
 	  - Secondary - 169.254.22.6
@@ -69,4 +59,37 @@ terraform show state
 	- ASN of AWS(64512)
 	- BGP Peer - 169.254.22.5
 
-  
+## AWS ##
+
+1. VPC - /16 CIDR
+  1.1 - Subnets - at least 1 /24 subnet
+2. Virtual Private Gateway
+  - ASN - default(64512)
+  - Attach to VPC
+3. Enable Route Propagation when creating rout tables
+4. Customer Gateway
+  4.1 CustomerGateway 1
+    - Routing: dynamic
+    - ASN - 65000
+    - IP - First IP of Azure Virtual Network Gateway(Public IP created for it)
+  4.2 CustomerGateway 2 
+    - Routing: dynamic
+    - ASN - 65000
+    - IP - Second IP of Azure Virtual Network Gateway(Public IP created for it)
+5. Site-to-Site VPN
+  5.1 S2S 1
+    - Target Gateway: Virtual Private Gateway
+    - Customer Gateway: CustomerGateway 1
+    - Inside IPv4 CIDR for Tunnel 1: 169.254.21.0/30
+    - Inside IPv4 CIDR for Tunnel 2: 169.254.22.0/30
+    - Set PSK(key) 1
+    - Set PSK(key) 2
+  5.2 S2S 2
+    - Target Gateway: Virtual Private Gateway
+    - Customer Gateway: CustomerGateway 2
+    - Inside IPv4 CIDR for Tunnel 1: 169.254.21.4/30
+    - Inside IPv4 CIDR for Tunnel 2: 169.254.22.4/30
+    - Set PSK(key) 1
+    - Set PSK(key) 2
+
+Should work afterwards
