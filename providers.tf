@@ -8,6 +8,10 @@ terraform {
       source  = "hashicorp/aws"
       version = "5.19.0"
     }
+    time = {
+      source  = "hashicorp/time"
+      version = "0.10.0"
+    }
   }
 }
 
@@ -20,3 +24,5 @@ provider "azurerm" {
 provider "aws" {
   region = var.main_region
 }
+
+provider "time" {}

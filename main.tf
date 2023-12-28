@@ -280,7 +280,7 @@ resource "aws_internet_gateway" "internet_gw" {
 
 resource "aws_default_route_table" "default_rt" {
   default_route_table_id = aws_vpc.vpc.default_route_table_id
-  propagating_vgws       = [ aws_vpn_gateway.virtual_private_gateway.id ]
+  propagating_vgws       = [aws_vpn_gateway.virtual_private_gateway.id]
 
   route {
     cidr_block = "0.0.0.0/0"
@@ -303,13 +303,22 @@ resource "aws_vpn_gateway" "virtual_private_gateway" {
   }
 }
 
+resource "time_sleep" "wait_for_ip_assignment" {
+  depends_on = [
+    azurerm_virtual_network_gateway.vng_to_aws
+  ]
+
+  create_duration = "30s"
+}
 resource "aws_customer_gateway" "customet_gw_1" {
   bgp_asn = "65000"
   type    = "ipsec.1"
 
   ip_address = azurerm_public_ip.public_ip_1.ip_address
 
-  depends_on = [azurerm_virtual_network_gateway.vng_to_aws]
+  depends_on = [
+    time_sleep.wait_for_ip_assignment
+  ]
 }
 
 resource "aws_customer_gateway" "customet_gw_2" {
@@ -318,7 +327,9 @@ resource "aws_customer_gateway" "customet_gw_2" {
 
   ip_address = azurerm_public_ip.public_ip_2.ip_address
 
-  depends_on = [azurerm_virtual_network_gateway.vng_to_aws]
+  depends_on = [
+    time_sleep.wait_for_ip_assignment
+  ]
 }
 
 #########################################
@@ -353,3 +364,7 @@ resource "aws_vpn_connection" "vpn_to_azure_2" {
 # 1. Make the option to supply existing VPC and Vnet - use data to retrive??
 # 2. Get rid of repeating code
 # 3. Variablize the setup
+#   - ASN
+#   - network and subnet CIDR
+# 4. Add the APIPA customization
+# 5. Wait for the IP to get assigned
