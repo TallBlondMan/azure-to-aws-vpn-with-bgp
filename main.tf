@@ -81,11 +81,17 @@ resource "azurerm_virtual_network_gateway" "vng_to_aws" {
     asn = 65000
     peering_addresses {
       ip_configuration_name = "VPN-PublicIP-01"
-      apipa_addresses       = ["169.254.21.2", "169.254.22.2"]
+      apipa_addresses       = [
+        cidrhost(var.apipa_cidr_blocks[0], 2), # "169.254.21.2"
+        cidrhost(var.apipa_cidr_blocks[1], 2)  # "169.254.22.2"
+      ]
     }
     peering_addresses {
       ip_configuration_name = "VPN-PublicIP-02"
-      apipa_addresses       = ["169.254.21.6", "169.254.22.6"]
+      apipa_addresses       = [
+        cidrhost(var.apipa_cidr_blocks[2], 2), # "169.254.21.6"
+        cidrhost(var.apipa_cidr_blocks[3], 2)  # "169.254.22.6"
+      ]
     }
   }
 }
@@ -102,8 +108,8 @@ resource "azurerm_virtual_network_gateway_connection" "tunnel1-connection1" {
   shared_key               = var.tunnel1_key
   local_network_gateway_id = azurerm_local_network_gateway.aws_tunnel1-1.id
   custom_bgp_addresses {
-    primary   = "169.254.21.2"
-    secondary = "169.254.21.6"
+    primary   = cidrhost(var.apipa_cidr_blocks[0], 2) # "169.254.21.2"
+    secondary = cidrhost(var.apipa_cidr_blocks[2], 2) # "169.254.21.6"
   }
 
   depends_on = [
@@ -124,8 +130,8 @@ resource "azurerm_virtual_network_gateway_connection" "tunnel2-connection1" {
   shared_key               = var.tunnel2_key
   local_network_gateway_id = azurerm_local_network_gateway.aws_tunnel1-2.id
   custom_bgp_addresses {
-    primary   = "169.254.22.2"
-    secondary = "169.254.22.6"
+    primary   = cidrhost(var.apipa_cidr_blocks[1], 2) # "169.254.22.2"
+    secondary = cidrhost(var.apipa_cidr_blocks[3], 2) # "169.254.22.6"
   }
 
   depends_on = [
@@ -146,8 +152,8 @@ resource "azurerm_virtual_network_gateway_connection" "tunnel1-connection2" {
   shared_key               = var.tunnel1_key
   local_network_gateway_id = azurerm_local_network_gateway.aws_tunnel2-1.id
   custom_bgp_addresses {
-    primary   = "169.254.21.2"
-    secondary = "169.254.21.6"
+    primary   = cidrhost(var.apipa_cidr_blocks[0], 2) # "169.254.21.2"
+    secondary = cidrhost(var.apipa_cidr_blocks[2], 2) # "169.254.21.6"
   }
 
   depends_on = [
@@ -168,8 +174,8 @@ resource "azurerm_virtual_network_gateway_connection" "tunnel2-connection2" {
   shared_key               = var.tunnel2_key
   local_network_gateway_id = azurerm_local_network_gateway.aws_tunnel2-2.id
   custom_bgp_addresses {
-    primary   = "169.254.21.2"
-    secondary = "169.254.22.6"
+    primary   = cidrhost(var.apipa_cidr_blocks[0], 2) # "169.254.21.2"
+    secondary = cidrhost(var.apipa_cidr_blocks[3], 2) # "169.254.22.6"
   }
 
   depends_on = [
@@ -189,7 +195,7 @@ resource "azurerm_local_network_gateway" "aws_tunnel1-1" {
 
   bgp_settings {
     asn                 = var.aws_bgp_asn
-    bgp_peering_address = "169.254.21.1"
+    bgp_peering_address = cidrhost(var.apipa_cidr_blocks[0], 1) # "169.254.21.1"
   }
 }
 
@@ -202,7 +208,7 @@ resource "azurerm_local_network_gateway" "aws_tunnel1-2" {
 
   bgp_settings {
     asn                 = var.aws_bgp_asn
-    bgp_peering_address = "169.254.22.1"
+    bgp_peering_address = cidrhost(var.apipa_cidr_blocks[1], 1) # "169.254.22.1"
   }
 }
 
@@ -215,7 +221,7 @@ resource "azurerm_local_network_gateway" "aws_tunnel2-1" {
 
   bgp_settings {
     asn                 = var.aws_bgp_asn
-    bgp_peering_address = "169.254.21.5"
+    bgp_peering_address = cidrhost(var.apipa_cidr_blocks[2], 1) # "169.254.21.5"
   }
 }
 
@@ -228,7 +234,7 @@ resource "azurerm_local_network_gateway" "aws_tunnel2-2" {
 
   bgp_settings {
     asn                 = var.aws_bgp_asn
-    bgp_peering_address = "169.254.22.5"
+    bgp_peering_address = cidrhost(var.apipa_cidr_blocks[3], 1) # "169.254.22.5"
   }
 }
 
@@ -297,7 +303,7 @@ resource "aws_default_route_table" "default_rt" {
 resource "aws_vpn_gateway" "virtual_private_gateway" {
   vpc_id = aws_vpc.vpc.id
   # Default ASB of AWS
-  amazon_side_asn = "64512"
+  amazon_side_asn = var.aws_bgp_asn # "64512"
   tags = {
     Name = "VPN-to-Azure"
   }
@@ -311,7 +317,7 @@ resource "time_sleep" "wait_for_ip_assignment" {
   create_duration = "30s"
 }
 resource "aws_customer_gateway" "customet_gw_1" {
-  bgp_asn = "65000"
+  bgp_asn = tostring(var.azure_bgp_asn) # "65000"
   type    = "ipsec.1"
 
   ip_address = azurerm_public_ip.public_ip_1.ip_address
@@ -322,7 +328,7 @@ resource "aws_customer_gateway" "customet_gw_1" {
 }
 
 resource "aws_customer_gateway" "customet_gw_2" {
-  bgp_asn = "65000"
+  bgp_asn = tostring(var.azure_bgp_asn) # "65000"
   type    = "ipsec.1"
 
   ip_address = azurerm_public_ip.public_ip_2.ip_address
@@ -341,10 +347,10 @@ resource "aws_vpn_connection" "vpn_to_azure_1" {
   customer_gateway_id = aws_customer_gateway.customet_gw_1.id
   type                = "ipsec.1"
 
-  tunnel1_inside_cidr   = "169.254.21.0/30"
+  tunnel1_inside_cidr   = var.apipa_cidr_blocks[0] # "169.254.21.0/30"
   tunnel1_preshared_key = var.tunnel1_key
 
-  tunnel2_inside_cidr   = "169.254.22.0/30"
+  tunnel2_inside_cidr   = var.apipa_cidr_blocks[1] # "169.254.22.0/30"
   tunnel2_preshared_key = var.tunnel2_key
 }
 
@@ -353,10 +359,10 @@ resource "aws_vpn_connection" "vpn_to_azure_2" {
   customer_gateway_id = aws_customer_gateway.customet_gw_2.id
   type                = "ipsec.1"
 
-  tunnel1_inside_cidr   = "169.254.21.4/30"
+  tunnel1_inside_cidr   = var.apipa_cidr_blocks[2] # "169.254.21.4/30"
   tunnel1_preshared_key = var.tunnel1_key
 
-  tunnel2_inside_cidr   = "169.254.22.4/30"
+  tunnel2_inside_cidr   = var.apipa_cidr_blocks[3] # "169.254.22.4/30"
   tunnel2_preshared_key = var.tunnel2_key
 }
 

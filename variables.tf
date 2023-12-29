@@ -34,11 +34,19 @@ variable "aws_bgp_asn" {
 }
 
 variable "tunnel1_key" {
-  type    = string
-  default = "pomidorekpomidorekgolonka"
+  type        = string
+  description = "PSK key for tunnel 1 - export via TF_VAR_"
+  default     = "pomidorekogoreczekgolonka"
 }
 
 variable "tunnel2_key" {
-  type    = string
-  default = "pomidorekpomidorekgolonka"
+  type        = string
+  description = "PSK key for tunnel 2 - export via TF_VAR_"
+  default     = "pomidorekogoreczekgolonka"
+}
+
+variable "apipa_cidr_blocks" {
+  type        = list(string)
+  description = "4 element list of APIPA CIDR blocks, they have to be in 169.254.21.0 and 169.254.22.255 range of mask /30"
+  default     = ["169.254.21.0/30", "169.254.22.0/30", "169.254.21.4/30", "169.254.22.4/30"]
 }
