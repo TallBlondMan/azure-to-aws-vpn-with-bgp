@@ -1,6 +1,6 @@
 variable "azure_rg_name" {
   type    = string
-  default = "1-7610fc1a-playground-sandbox"
+  default = "1-f712a34c-playground-sandbox"
 }
 
 variable "main_region" {
