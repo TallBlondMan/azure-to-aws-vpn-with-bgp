@@ -50,21 +50,14 @@ resource "azurerm_public_ip" "public_ip" {
   allocation_method = "Dynamic"
 }
 
-# resource "azurerm_public_ip" "public_ip_1" {
-#   name                = "publicIP-01"
-#   resource_group_name = data.azurerm_resource_group.this.name
-#   location            = data.azurerm_resource_group.this.location
+data "azurerm_public_ip" "public_ip_data" {
+  count = length(azurerm_public_ip.public_ip)
 
-#   allocation_method = "Dynamic"
-# }
+  name = azurerm_public_ip.public_ip[count.index].name
+  resource_group_name = data.azurerm_resource_group.this.name
 
-# resource "azurerm_public_ip" "public_ip_2" {
-#   name                = "publicIP-02"
-#   resource_group_name = data.azurerm_resource_group.this.name
-#   location            = data.azurerm_resource_group.this.location
-
-#   allocation_method = "Dynamic"
-# }
+  depends_on = [ azurerm_virtual_network_gateway.vng_to_aws ]
+}
 
 resource "azurerm_virtual_network_gateway" "vng_to_aws" {
   name                = "VPN-to-AWS"
@@ -79,27 +72,17 @@ resource "azurerm_virtual_network_gateway" "vng_to_aws" {
   vpn_type   = "RouteBased"
   enable_bgp = true
 
-  dynamic "ip_configuration" {
-    for_each = azurerm_public_ip.public_ip
-
-    content {
-      name = "VPN-${ip_configuration.value.name}"
-
-      public_ip_address_id = ip_configuration.value.id
-      subnet_id            = azurerm_subnet.gateway_subnet.id
-    }
+  ip_configuration {
+    name                 = "VPN-PublicIP-01"
+    public_ip_address_id = azurerm_public_ip.public_ip[0].id
+    subnet_id            = azurerm_subnet.gateway_subnet.id
   }
-  # ip_configuration {
-  #   name                 = "VPN-PublicIP-01"
-  #   public_ip_address_id = azurerm_public_ip.public_ip_1.id
-  #   subnet_id            = azurerm_subnet.gateway_subnet.id
-  # }
 
-  # ip_configuration {
-  #   name                 = "VPN-PublicIP-02"
-  #   public_ip_address_id = azurerm_public_ip.public_ip_2.id
-  #   subnet_id            = azurerm_subnet.gateway_subnet.id
-  # }
+  ip_configuration {
+    name                 = "VPN-PublicIP-02"
+    public_ip_address_id = azurerm_public_ip.public_ip[1].id
+    subnet_id            = azurerm_subnet.gateway_subnet.id
+  }
 
   bgp_settings {
     asn = 65000
@@ -211,14 +194,6 @@ resource "azurerm_virtual_network_gateway_connection" "tunnel2-connection2" {
 #       Local Network Connections
 #########################################
 
-resource "azurerm_local_network_gateway" "aws_tunnel" {
-  count = length(var.apipa_cidr_blocks)
-
-  name                = "AWS-Tunnel1-1"
-  resource_group_name = data.azurerm_resource_group.this.name
-  location            = data.azurerm_resource_group.this.location
-  ##########################################################################################################################################
-}
 resource "azurerm_local_network_gateway" "aws_tunnel1-1" {
   name                = "AWS-Tunnel1-1"
   resource_group_name = data.azurerm_resource_group.this.name
@@ -351,12 +326,12 @@ resource "time_sleep" "wait_for_ip_assignment" {
 }
 
 resource "aws_customer_gateway" "customet_gw" {
-  count = length(azurerm_public_ip.public_ip)
+  count = length(data.azurerm_public_ip.public_ip)
 
   bgp_asn = tostring(var.azure_bgp_asn) # "65000"
   type    = "ipsec.1"
 
-  ip_address = azurerm_public_ip.public_ip[count.index].ip_address
+  ip_address = data.azurerm_public_ip.public_ip[count.index].ip_address
 
   depends_on = [
     time_sleep.wait_for_ip_assignment
@@ -387,21 +362,6 @@ resource "aws_customer_gateway" "customet_gw" {
 #########################################
 #            Site-to-Site
 #########################################
-
-resource "aws_vpn_connection" "vpn_to_azure" {
-  count = lenght(aws_customer_gateway.customet_gw)
-
-  vpn_gateway_id      = aws_vpn_gateway.virtual_private_gateway.id
-  customer_gateway_id = aws_customer_gateway.customet_gw[count.index].id
-  type                = "ipsec.1"
-
-  tunnel1_inside_cidr   = var.apipa_cidr_blocks[0] # "169.254.21.0/30"
-  tunnel1_preshared_key = var.tunnel1_key
-
-  tunnel2_inside_cidr   = var.apipa_cidr_blocks[1] # "169.254.22.0/30"
-  tunnel2_preshared_key = var.tunnel2_key
-}
-
 resource "aws_vpn_connection" "vpn_to_azure_1" {
   vpn_gateway_id      = aws_vpn_gateway.virtual_private_gateway.id
   customer_gateway_id = aws_customer_gateway.customet_gw[0].id

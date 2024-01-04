@@ -1,6 +1,7 @@
 variable "azure_rg_name" {
   type    = string
-  default = "1-f712a34c-playground-sandbox"
+  description = "Resource Group in which to deploy all the components"
+  # default = "1-f712a34c-playground-sandbox"
 }
 
 variable "main_region" {
